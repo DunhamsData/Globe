@@ -1,0 +1,2171 @@
+<!-- https://vasturiano.github.io/three-globe/ -->
+<!-- https://github.com/vasturiano/globe.gl -->
+<!-- https://threejs.org/docs/#api/en/lights/DirectionalLight -->
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="content-type" content="text/html" charset="utf-8" />
+  <link href="font/font.css?family=Playfair+Display" rel="stylesheet" type="text/css">
+  <style>
+    * {
+       outline: 0 !important;
+    }
+    html { height: 100%; overflow:auto; }
+    body { height: 200%; transition: background-color 2s;}
+    p {}
+    .label {color: #333}
+    .header {font-weight: bold}
+    .tooltip {
+        background: rgba(255,255,255,0.5); border: 0px solid #CCC; padding: 5px 10px 5px 10px;
+        font-family: Arial;
+        border-radius: 5px 5px;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+    }
+    #timeline {
+        position: fixed;
+        left: 10px;
+        bottom: 10px;
+        z-index: 4;
+        display: none;
+        width: 99%;
+        height: auto;
+    }
+    #mytooltip {
+        margin-left : 0px;
+        margin-top: 100px;
+        position: fixed;
+        font-size: 14px;
+    }
+    #mytooltip.hidden {
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0.1s, opacity 0.5s linear;
+    }
+    #mytooltip.shown {
+      visibility: visible;
+      opacity: 1;
+      transition: visibility 0s, opacity 0.5s linear;
+    }
+    .myhideable {
+      opacity: 1;
+      transition: visibility 1s, opacity 1s;
+    }
+    .myhideable-forced-hidden {
+        display: none !important;
+    }
+    .bold {font-weight: bold}
+    /*.bold:before {content: "\25B6  "}*/
+    .slider-label {color: black; font-size: 10px;}
+    /*button[type=button]{margin-top: -10px}*/
+    .disabled-link {
+      cursor: not-allowed;
+      opacity: 0.5;
+      text-decoration: none;
+      pointer-events: none;
+      /*cursor: default;*/
+    }
+    a, a:visited{
+     color: blue;
+     outline: 0;
+    }
+    a.round-button {
+        color: white;
+    }
+    .scene-mode-globe {
+        transform-origin: center center;
+        transform: scale(50%);
+        transition: transform 2s;
+    }
+    .band {
+        position: fixed;
+        left: 0;
+        z-index: 2;
+        background-color: black;
+        height: 110px;
+        width: 100%;
+        transition: all 2s;
+    }
+    #top-band {
+        top: -110px;
+    }
+    #bottom-band {
+        bottom: -110px;
+    }
+    .scene-mode-top-band {
+        top: 0 !important;
+    }
+    .scene-mode-bottom-band {
+        bottom: 0 !important;
+    }
+    .tour-control {
+        position:fixed;
+        z-index:3;
+        background-color:#FFFFFF66;
+        padding: 10px;
+        width:15%; 
+        border-radius: 10px;
+        margin-left: 0px;
+        margin-top: 30px;
+        transition: all 1s;
+        
+        margin-top: 0 !important;
+        top: 6px !important;
+    }
+    .tour-control-ontour {
+        background-color:#FFFFFFEE !important;
+        margin-top: 0 !important;
+        top: 6px !important;
+    }
+    .inactive-esc-exit {
+        color: white;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 2s;
+        position: fixed;
+        left: 100px;
+        top: 100px;
+        z-index: 3;
+    }
+    .inactive-esc-exit {
+        opacity: 0.9;
+    }
+  </style>
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="color-picker.min.css" rel="stylesheet">
+  <link href="slider.css" rel="stylesheet">
+  <link href="text.css" rel="stylesheet">
+  
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<!--  <script src="https://threejs.org/build/three.js"></script>-->
+  <script src="dist/three.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="color-picker.min.js"></script>
+  <script src="globe2.gl.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.10.2/underscore.js"></script>
+  <script src="rangeslider.js"></script>
+</head>
+
+<!--<body onLoad="window.scroll(0, window.innerHeight)">  <!--/1.1)-->
+<body onLoad="window.scrollTo({top: window.innerHeight, left: 0, behavior: 'smooth'})">
+
+  <div id="tour-div" class="tour-control">
+    <div id="slider-div">
+        <span id="slider-left-label" class="slider-label" style="float:left;">placeholder</span>
+        <span id="slider-right-label" class="slider-label" style="float:right;">placeholder</span><br>
+        <input type='range' min='0' max=placeholder step='1' value='0' id='rangeSlider' class='rangeslider' /><br>
+        <span class="rangeslider__tooltip my-control-class" id ="range-tooltip"></span><br>
+        <div class="my-control-class" style="margin-top:-10px; text-align:center">
+            <a href="#" class="round-button" id="start"><i class="fa fa-play"></i></a>
+            <a href="#" class="round-button" id="stop"><i class="fa fa-stop"></i></a>
+<!--            <a href="#" class="round-button" id="next"><i class="fa fa-forward" style="padding-left:2px"></i></a>-->
+<!--            <a href="#" class="round-button" id="back"><i class="fa fa-backward" style="padding-left:-20px"></i></a>-->
+        </div>
+        <!--<button type="button" id="start">Start</button>
+        <button type="button" id="stop">Stop</button>
+        <button type="button" id="next">Next</button>
+        <button type="button" id="back">Back</button>-->
+    </div>
+  </div>
+  
+  <div id="sidebar" class="myhideable">
+    <div class="item title">Instructions</div>
+    <div class="item">Use your mouse to zoom in, zoom out, and rotate the globe.</div>
+    <div class="item">Hover over the timeline to show the origin, destination, and date for each of Dunham’s trips. Hover over a grey line perpendicular to the earth to display every trip Dunham made to that particular location and the duration of her stay.</div>
+    <div class="item">Alternatively, use the control buttons in the upper left corner to play Dunham’s travel trip-by-trip, jump to the next trip, or navigate to another date.</div>
+  </div>
+  
+  <div id="look-and-feel" style="position:fixed; z-index:1; background-color:#FFFFFF66; padding: 10px; margin-top: 110px; display:none">
+    <span>THEMES: <a id="theme1" href="">Default</a> | <a id="theme2" href="">Aquarium</a> |<br>
+    <a id="theme3" href="">Light grey</a> | <a id="theme4" href="">Dark grey</a> |<br>
+    <a id="theme5" href="">Night 1</a> | <a id="theme6" href="">Night 2</a> | <a id="theme7" href="">Night 3</a></span><br><br><br>
+    <span>Map: <a id="map1" href="">light grey</a> | <a id="map2" href="">dark grey</a> |<br>
+    <a id="map3" href="">aquarium</a> | <a id="map4" href="">black</a></span><br><br>
+    <span>Background: <a id="bckg1" href="">white</a> | <a id="bckg2" href="">dark blue</a></span><br><br>
+    <span>Ambient light: <input type="number" step=0.1 id="ambientintensity" style="width: 80px;"></span><br><br>
+    <span>Atmosphere: <a id="aton" href="">on</a> | <a id="atoff" href="">off</a></span><br><br>
+    <span>Links: <a id="link1" href="">yellow - red</a> | <a id="link3" href="">blue - purple</a><br>
+    <a id="link2" href="">light blue - dark blue</a> | <a id="link4" href="">green - blue</a></span><br><br>
+    <span>Poles: <a id="pole1" href="">grey</a> | <a id="pole2" href="">white</a></span><br><br>
+    <span>Labels: <a id="label1" href="">black</a> | <a id="label2" href="">white</a></span><br><br>
+    <span>Spheres: <a id="sphere1" href="">green</a> | <a id="sphere2" href="">red</a></span>
+  </div>
+  
+  <div id="mytooltip" class="hidden" style="z-index:5; padding: 10px;"></div>
+  <!--<span>My tooltip: <a id="showmytp" href="">Show</a> | <a id="hidemytp" href="">Hide</a></span><br>-->
+  
+  <div id="animation" style="position:fixed; right: 0; z-index:1; background-color:#FFFFFF66; padding: 10px; margin-top:0; display:none">
+    <span>Animation: <a id="aon1" href="">on1</a> | <a id="aon2" href="">on2</a> | <a id="aoff" href="">off</a></span><br>
+    <span>Quick jumps: <a id="jump1" href="">France-Italy I</a> |<br>
+    <a id="jump2" href="">South America</a> | <a id="jump3" href="">LA area</a><span><br>
+    <span>Other actions: <a id="restart" href="">restart</a> | <a id="jump" href="">jump</a><span><br>
+    Background color: <input type="text" id="background_color" style="width: 80px;"><br>
+    Pole color/opacity: <input type="text" id="point_color" style="width: 80px;"><br>
+    Pole radius: <input type="number" step=0.01 id="point_radius" style="width: 80px;"><br>
+    H pole col/opac: <input type="text" id="hpoint_color" style="width: 80px;"><br>
+    H pole radius: <input type="text" step=0.01 id="hpoint_radius" style="width: 80px;"><br>
+    City color/opacity: <input type="text" id="labelcity_color" style="width: 80px;"><br>
+    City text size: <input type="number" step=0.01 id="labelcity_size" style="width: 80px;"><br>
+<!--
+    Zoom-independent text size <input type="checkbox" id="zoom-independent"><br>
+-->
+    Year color/opacity: <input type="text" id="labelyear_color" style="width: 80px;"><br>
+    Year text size: <input type="number" step=0.01 id="labelyear_size" style="width: 80px;"><br>
+    H city col/opac: <input type="text" id="hlabelcity_color" style="width: 80px;"><br>
+    <input type="checkbox" id="path_color_activate"> Link color: <input type="text" id="path_color" style="width: 80px;"><br>
+    Link width: <input type="number" step=0.1 id="path_stroke" style="width: 80px;"><br>
+    H link color: <input type="text" id="hpath_color" style="width: 80px;"><br>
+    H link width: <input type="text" step=0.01 id="hpath_stroke" style="width: 80px;"><br>
+    Dash length: <input type="text" step=0.1 id="dash_length" style="width: 80px;"><br>
+    Dash gap: <input type="text" step=0.1 id="dash_gap" style="width: 80px;"><br>
+    Dash speed: <input type="text" step=100 id="dash_speed" style="width: 80px;"><br>
+<!--
+    Sphere color: <input type="text" id="sphere_color" style="width: 80px;"><br>
+    Sphere radius: <input type="number" step=0.01 id="sphere_radius" style="width: 80px;"><br>
+    Tick color: <input type="text" id="tick_color" style="width: 80px;"><br>
+    Tick radius: <input type="number" step=0.01 id="tick_radius" style="width: 80px;"><br>
+    Light position: <a id="lightleft" href="">left</a> | <a id="lightright" href="">right</a><br>
+    Light intensity: <input type="number" step=0.1 id="lightintensity" style="width: 80px;"><br>
+-->
+  </div>
+
+  <div id="info">
+    <div class="title myhideable"><span>Katherine Dunham’s Global Travel, 1947-60 (Interactive Space-Time Mapping)</span></div>
+    <div class="description myhideable">Antonio Jimenez Mavillard created this interactive space-time mapping to visualize the <a target="_blank" href="https://www.icpsr.umich.edu/web/NADAC/series/1620">Everyday Itinerary dataset</a> manually curated by Harmony Bench and Kate Elswit for <i>Dunham’s Data: Katherine Dunham and Digital Methods for Dance Historical Inquiry</i> (AHRC grant AH/R012989/1). <i>Dunham’s Data</i> explores the kinds of questions and problems that make the analysis and visualization of data meaningful for dance history, through the exemplary case study of African American artist, teacher, and activist Katherine Dunham. Elsewhere, we have visualized this same data as a more <a target="_blank" href="https://visualizations.dunhamsdata.org/1947-60timeline/">traditional timeline</a>, but spatializing this data while maintaining chronology allows us to see the architecture of Dunham’s global travels, including the locations to which Dunham continuously returned. Time is represented as elevation, with 1947 closest to the earth rising to 1960 farthest away. For further discussion of the “global method” that this itinerary reveals, see <a target="_blank" href="https://doi.org/10.1017/S0040557420000253">“Katherine Dunham’s Global Method and the Embodied Politics of Dance’s Everyday”</a> in <i>Theatre Survey</i>.</div>
+  </div>
+
+  <!--<div id='esc-exit' class="inactive-esc-exit">Press [Esc] to exit.</div>-->
+  <div id='top-band' class="band"></div>
+  <div id='bottom-band' class="band"></div>
+  
+<!--  <div id="div-img">-->
+<!--    <img id="timeline" src=""/>-->
+<!--  </div>-->
+  
+  <div id="globeViz" style="margin-top:10px"></div>
+  <script>
+    
+    function isLightColorScheme() {
+        var r
+        var pathname = window.location.pathname
+        var isLight = pathname.includes('light') || pathname.includes('Light')
+        var isDark = pathname.includes('dark') || pathname.includes('Dark')
+        if (isLight && !isDark)
+            r = true
+        else if (!isLight && isDark)
+            r = false
+        else { // neither or both
+            console.log('Color scheme error. Taking light by default.')
+            r = true
+        }
+        return r
+    }
+    isLightScheme = isLightColorScheme()
+    
+    function isForwardLineColor() {
+        var r
+        var pathname = window.location.pathname
+        var isForward = pathname.includes('forward') || pathname.includes('Forward')
+        var isBackward = pathname.includes('backward') || pathname.includes('Backward')
+        if (isForward && !isBackward)
+            r = true
+        else if (!isForward && isBackward)
+            r = false
+        else { // neither or both
+            console.log('Line color direction error. Taking forward by default.')
+            r = true
+        }
+        return r
+    }
+    isForwardColor = isForwardLineColor()
+    
+    // Params
+    const params = {
+        globe: {
+            globeImage: isLightScheme ? 'earth-maps/grey.png' : 'earth-maps/black.png',
+            backgroundColor: !isLightScheme ? '#123' : '#fff',
+        },
+        point: { // visible pole
+            color: isLightScheme ? '#60606066' : '#c0c0c066',
+            hexColor: null, // #808080
+            opacity: null, // 0.4
+            radius: 0.01,
+        },
+        point2: { // hidden highlightable pole
+            color: '#00000000',
+            hexColor: null, // #000000
+            opacity: null, // 0
+            highColor: '#00FFFFCC',
+            highHexColor: null, // #00FFFF
+            highOpacity: null, // 0.8
+            radius: 0.1,
+        },
+        labelCity: {
+            color: isLightScheme ? '#333333FF' : '#f0f0f0FF',
+            hexColor: null, // #333333
+            opacity: null, // 1
+            size: 0.15,
+            highColor: '#FF5000FF',
+            highHexColor: null, // #FF5000
+            highOpacity: null, // 1
+        },
+        labelCityBckg: {
+            color: '#00000000',
+            hexColor: null, // #000000
+            opacity: null, // 0
+            size: 3,
+        },
+        labelYear: {
+            color: isLightScheme ? '#808080CC': '#c0c0c0cc',
+            hexColor: null, // #808080
+            opacity: null, // 0.8
+            size: 0.1,
+        },
+        path: { // thick colored visible line
+            color: 'color',
+            stroke: 0.5,
+            highHexColor: '#FF00FF',
+            highStroke: 1,
+        },
+        path2: { // thin hidden line
+            dashLength: 1,
+            dashGap: 0.5,
+            dashAnimateTime: 500,
+            colorOff: '#FFFFFF00',
+            colorOn: '#FFFFFFFF',
+        },
+        dot: { // no opacity allowed
+            sphereColor: '#008000',
+            sphereRGBColor: null, // {r:0, g:0.5019607843137255, b:0}
+            sphereRadius: 0.05,
+            sphereRadiusScale: 1,
+            hSphereColor: '#000000',
+            hSphereRGBColor: null, // {r:0, g:0, b:0}
+            hSphereRadiusScale: 4,
+            tickColor: '#808080',
+            tickRadius: 0.1,
+        },
+        light: {
+            position: 'right',
+            intensity: 0.6,
+            aIntensity: 1.5,
+        }
+    }
+    for (k in params) {
+        var objParams = params[k]
+        if ('hexColor' in objParams && 'opacity' in objParams && 'color' in objParams)
+            [objParams['hexColor'], objParams['opacity']] = hexa2hexAndAlpha(objParams['color'])
+        if ('highHexColor' in objParams && 'highOpacity' in objParams && 'highColor' in objParams)
+            [objParams['highHexColor'], objParams['highOpacity']] = hexa2hexAndAlpha(objParams['highColor'])
+        if ('sphereRGBColor' in objParams && 'sphereColor' in objParams)
+            objParams['sphereRGBColor'] = hex2rgbNorm(objParams['sphereColor'])
+        if ('hSphereRGBColor' in objParams && 'hSphereColor' in objParams)
+            objParams['hSphereRGBColor'] = hex2rgbNorm(objParams['hSphereColor'])
+    }
+    
+    
+    
+//  <div id="look-and-feel" style="position:fixed; z-index:1; background-color:#FFFFFF66; padding: 10px; margin-top: 110px;">
+//    <span>*Map: <a id="map1" href="">light grey</a> | <a id="map2" href="">dark grey</a> |<br>
+//    <a id="map3" href="">vimeo video</a> | <a id="map4" href="">black</a></span><br>
+//    <span>*Background: <a id="bckg1" href="">white</a> | <a id="bckg2" href="">dark blue</a></span><br>
+//    <span>*Ambient: <input type="number" step=0.1 id="ambientintensity" style="width: 80px;"></span><br>
+//    <span>*Atmosphere: <a id="aton" href="">on</a> | <a id="atoff" href="">off</a></span><br>
+//    <span>*Links: <a id="link1" href="">Yellow - Red</a> | <a id="link2" href="">Blue - Purple</a><br>
+//    <a id="link3" href="">Light blue - Dark blue</a> | <a id="link4" href="">Green - Blue</a></span><br>
+//    <span>*Poles: <a id="pole1" href="">Light grey</a> | <a id="pole2" href="">Dark grey</a> | <a id="pole3" href="">White</a></span><br>
+//    <span>*Labels: <a id="label1" href="">Black</a> | <a id="label2" href="">White</a></span><br>
+//    <span>*Spheres: <a id="sphere1" href="">Green</a> | <a id="sphere2" href="">Red</a></span><br>
+//    <span>**Themes: <a id="theme1" href="">Default</a> | <a id="theme2" href="">Aquarium</a> |<br>
+//    <a id="theme3" href="">Light grey</a> | <a id="theme4" href="">Dark grey</a> |<br>
+//    <a id="theme5" href="">Night 1</a> | <a id="theme6" href="">Night 2</a></span>
+//  </div>
+  
+    // Look and feel
+    function map1() {
+        globe.globeImageUrl('earth-maps/lightgrey.jpg')
+    }
+    function map2() {
+        globe.globeImageUrl('earth-maps/darkgrey.jpg')
+    }
+    function map3() {
+        globe.globeImageUrl('earth-maps/vimeovideo.jpg')
+    }
+    function map4() {
+        globe.globeImageUrl('earth-maps/earth-dark.jpg')
+    }
+    function bckg1() {
+        scene.background = new THREE.Color('white')
+        document.body.style.backgroundColor = 'white'
+    }
+    function bckg2() {
+        scene.background = new THREE.Color('#123')
+        document.body.style.backgroundColor = '#123'
+    }
+    function link1() {
+        globe.pathColor('color')
+    }
+    function link2() {
+        globe.pathColor('color2')
+    }
+    function link3() {
+        globe.pathColor('color3')
+    }
+    function link4() {
+        globe.pathColor('color4')
+    }
+    function pole1() {
+        globe.pointColor(d => d.type == 'thinPole' ? params.point.color : params.point2.color)
+    }
+    function pole2() {
+        globe.pointColor(d => d.type == 'thinPole' ? '#FFFFFF66' : params.point2.color)
+    }
+    function label1() {
+        globe.labelColor(d => d.type == 'city' ? params.labelCity.color : d.type == 'citybckg' ? params.labelCityBckg.color : params.labelYear.color)
+    }
+    function label2() {
+        globe.labelColor(d => d.type == 'city' ? '#FFFFFFFF' : d.type == 'citybckg' ? params.labelCityBckg.color : params.labelYear.color)
+    }
+    function sphere1() {
+        globe.customLayerData([])
+        globe
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? params.dot.sphereColor : params.dot.tickColor
+            var radius = d.type == 'sphere' ? params.dot.sphereRadius : params.dot.tickRadius
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+        setTimeout(() => {
+          globe.customLayerData(dotsD)
+        }, 50)
+    }
+    function sphere2() {
+        globe.customLayerData([])
+        globe
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? 'red' : params.dot.tickColor
+            var radius = d.type == 'sphere' ? params.dot.sphereRadius : params.dot.tickRadius
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+        setTimeout(() => {
+          globe.customLayerData(dotsD)
+        }, 50)
+    }
+    $('#map1').click(function() {
+        map1()
+        return false
+    })
+    $('#map2').click(function() {
+        map2()
+        return false
+    })
+    $('#map3').click(function() {
+        map3()
+        return false
+    })
+    $('#map4').click(function() {
+        map4()
+        return false
+    })
+    $('#bckg1').click(function() {
+        bckg1()
+        return false
+    })
+    $('#bckg2').click(function() {
+        bckg2()
+        return false
+    })
+    $('#link1').click(function() {
+        link1()
+        return false
+    })
+    $('#link2').click(function() {
+        link2()
+        return false
+    })
+    $('#link3').click(function() {
+        link3()
+        return false
+    })
+    $('#link4').click(function() {
+        link4()
+        return false
+    })
+    $('#pole1').click(function() {
+        pole1()
+        return false
+    })
+    $('#pole2').click(function() {
+        pole2()
+        return false
+    })
+    $('#label1').click(function() {
+        label1()
+        return false
+    })
+    $('#label2').click(function() {
+        label2()
+        return false
+    })
+    $('#sphere1').click(function() {
+        sphere1()
+        return false
+    })
+    $('#sphere2').click(function() {
+        sphere2()
+        return false
+    })
+    $('#theme1').click(function() {
+        globe.globeImageUrl('earth-maps/grey.png')
+        scene.children[1].intensity = 1.5
+        globe.showAtmosphere(true)
+        bckg2()
+        link1()
+        pole1()
+        label1()
+        sphere1()
+        return false
+    })
+    $('#theme2').click(function() {
+        map3()
+        scene.children[1].intensity = 1.5
+        globe.showAtmosphere(false)
+        bckg1()
+        link2()
+        pole1()
+        label1()
+        sphere2()
+        return false
+    })
+    $('#theme3').click(function() {
+        map1()
+        scene.children[1].intensity = 1.5
+        globe.showAtmosphere(false)
+        bckg1()
+        link1()
+        pole1()
+        label1()
+        sphere1()
+        return false
+    })
+    $('#theme4').click(function() {
+        map2()
+        scene.children[1].intensity = 1.5
+        globe.showAtmosphere(false)
+        bckg1()
+        link1()
+        pole1()
+        label1()
+        sphere1()
+        return false
+    })
+    $('#theme5').click(function() {
+        map4()
+        scene.children[1].intensity = 2
+        globe.showAtmosphere(true)
+        bckg2()
+        link1()
+        pole2()
+        label2()
+        sphere1()
+        return false
+    })
+    $('#theme6').click(function() {
+        map4()
+        scene.children[1].intensity = 2
+        globe.showAtmosphere(true)
+        bckg2()
+        link3()
+        pole2()
+        label2()
+        sphere1()
+        return false
+    })
+    $('#theme7').click(function() {
+        map4()
+        scene.children[1].intensity = 2
+        globe.showAtmosphere(true)
+        bckg2()
+        link4()
+        pole2()
+        label2()
+        sphere2()
+        return false
+    })
+    
+    
+    // Other options
+    $('#background_color').val(params.globe.backgroundColor)
+    var background_picker = new CP(document.querySelector('#background_color'))
+    function onChangeBackground(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      document.body.style.backgroundColor = this.color(r, g, b, a)
+      scene.background = new THREE.Color(this.color(r, g, b, a))
+    }
+    background_picker.on('change', onChangeBackground);
+    
+    $('#point_color').val(params.point.color)
+    var point_picker = new CP(document.querySelector('#point_color'))
+    function onChangePoint(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      globe.pointColor(d => d.type == 'thinPole' ? this.color(r, g, b, a) : params.point2.color)
+    }
+    point_picker.on('change', onChangePoint);
+    
+    $('#point_radius').val(params.point.radius)
+    $('#point_radius').change(function() {
+        var radius = parseFloat($(this).val())
+        globe.pointRadius(d => d.type == 'thinPole' ? radius : params.point2.radius)
+        return false
+    })
+    
+    $('#hpoint_color').val(params.point2.highColor)
+    var hpoint_picker = new CP(document.querySelector('#hpoint_color'))
+    function onChangeHpoint(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      var hexAndAlpha = hexa2hexAndAlpha(this.source.value)
+      params.point2.highHexColor = hexAndAlpha[0]
+      params.point2.highOpacity = hexAndAlpha[1]
+    }
+    hpoint_picker.on('change', onChangeHpoint);
+    
+    $('#hpoint_radius').val(params.point2.radius)
+    $('#hpoint_radius').change(function() {
+        var radius = parseFloat($(this).val())
+        globe.pointRadius(d => d.type == 'thinPole' ? params.point.radius : radius)
+        return false
+    })
+    
+    $('#labelcity_color').val(params.labelCity.color)
+    var labelcity_picker = new CP(document.querySelector('#labelcity_color'))
+    function onChangeLabelcity(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      globe.labelColor(d => d.type == 'city' ? this.color(r, g, b, a) : $('#labelyear_color').val())
+    }
+    labelcity_picker.on('change', onChangeLabelcity);
+    
+    $('#labelcity_size').val(params.labelCity.size)
+    $('#labelcity_size').change(function() {
+        var size = parseFloat($(this).val())
+        globe.labelSize(d => d.type == 'city' ? size : $('#labelyear_size').val())
+        return false
+    })
+    
+    $('#zoom-independent').prop('checked', true)
+    
+    $('#labelyear_color').val(params.labelYear.color)
+    var labelyear_picker = new CP(document.querySelector('#labelyear_color'))
+    function onChangeLabelyear(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      globe.labelColor(d => d.type == 'city' ? $('#labelcity_color').val() : this.color(r, g, b, a))
+    }
+    labelyear_picker.on('change', onChangeLabelyear);
+    
+    $('#labelyear_size').val(params.labelYear.size)
+    $('#labelyear_size').change(function() {
+        var size = parseFloat($(this).val())
+        globe.labelSize(d => d.type == 'city' ? $('#labelcity_size').val() : size)
+        return false
+    })
+    
+    $('#hlabelcity_color').val(params.labelCity.highColor)
+    var hlabelcity_picker = new CP(document.querySelector('#hlabelcity_color'))
+    function onChangeHlabelcity(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      var hexAndAlpha = hexa2hexAndAlpha(this.source.value)
+      params.labelCity.highHexColor = hexAndAlpha[0]
+      params.labelCity.highOpacity = hexAndAlpha[1]
+    }
+    hlabelcity_picker.on('change', onChangeHlabelcity);
+    
+    $('#path_stroke').val(params.path.stroke)
+    $('#path_stroke').change(function() {
+        var stroke = parseFloat($(this).val())
+        globe.pathStroke(stroke)
+        return false
+    })
+    
+    var checked_first_time = true
+    $('#path_color_activate').click(function() {
+        if (this.checked && checked_first_time) {
+            $('#path_color').val('#FF0000FF')
+            var path_picker = new CP(document.querySelector('#path_color'))
+            function onChangePath(r, g, b, a) {
+              this.source.value = this.color(r, g, b, a)
+              globe.pathColor(() => this.color(r, g, b, a))
+            }
+            path_picker.on('change', onChangePath);
+            checked_first_time = false
+        }
+    })
+    
+    $('#hpath_color').val(params.path.highHexColor)
+    var hpath_picker = new CP(document.querySelector('#hpath_color'))
+    function onChangeHpath(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      var hexAndAlpha = hexa2hexAndAlpha(this.source.value)
+      params.path.highHexColor = hexAndAlpha[0]
+    }
+    hpath_picker.on('change', onChangeHpath);
+    
+    $('#hpath_stroke').val(params.path.highStroke)
+    $('#hpath_stroke').change(function() {
+        params.path.highStroke = parseFloat($(this).val())
+        return false
+    })
+    
+    $('#dash_length').val(params.path2.dashLength)
+    $('#dash_length').change(function() {
+        params.path2.dashLength = parseFloat($(this).val())
+        return false
+    })
+    
+    $('#dash_gap').val(params.path2.dashGap)
+    $('#dash_gap').change(function() {
+        params.path2.dashGap = parseFloat($(this).val())
+        return false
+    })
+    
+    $('#dash_speed').val(params.path2.dashAnimateTime)
+    $('#dash_speed').change(function() {
+        params.path2.dashAnimateTime = parseInt($(this).val())
+        return false
+    })
+    
+    $('#sphere_color').val(params.dot.sphereColor)
+    var sphere_picker = new CP(document.querySelector('#sphere_color'))
+    function onChangeSphere(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      globe.customLayerData([])
+      globe
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? this.color(r, g, b, a) : $('#tick_color').val()
+            var radius = d.type == 'sphere' ? $('#sphere_radius').val() : $('#tick_radius').val()
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+      setTimeout(() => {
+        globe.customLayerData(dotsD)
+      }, 50)
+    }
+//    sphere_picker.on('change', onChangeSphere);
+    
+    $('#sphere_radius').val(params.dot.sphereRadius)
+    $('#sphere_radius').change(function() {
+      var rad = parseFloat($(this).val())
+      globe.customLayerData([])
+      globe
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? $('#sphere_color').val() : $('#tick_color').val()
+            var radius = d.type == 'sphere' ? rad : $('#tick_radius').val()
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+      setTimeout(() => {
+        globe.customLayerData(dotsD)
+      }, 50)
+      return false
+    })
+    
+    $('#tick_color').val(params.dot.tickColor)
+    var tick_picker = new CP(document.querySelector('#tick_color'))
+    function onChangeTick(r, g, b, a) {
+      this.source.value = this.color(r, g, b, a)
+      globe.customLayerData([])
+      globe
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? $('#sphere_color').val() : this.color(r, g, b, a)
+            var radius = d.type == 'sphere' ? $('#sphere_radius').val() : $('#tick_radius').val()
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+      setTimeout(() => {
+        globe.customLayerData(dotsD)
+      }, 50)
+    }
+//    tick_picker.on('change', onChangeTick);
+    
+    $('#tick_radius').val(params.dot.tickRadius)
+    $('#tick_radius').change(function() {
+      var rad = parseFloat($(this).val())
+      globe.customLayerData([])
+      globe
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? $('#sphere_color').val() : $('#tick_color').val()
+            var radius = d.type == 'sphere' ? $('#sphere_radius').val() : rad
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+      setTimeout(() => {
+        globe.customLayerData(dotsD)
+      }, 50)
+      return false
+    })
+    
+    $('#lightleft').click(function() {
+        if (scene.children.length >= 3) {
+            var myLight = scene.children[2]
+            if (params.light.position == 'right') {
+                var X = -myLight.position.x
+                var Z = -myLight.position.z
+                myLight.position.set(X, 0, Z)
+            }
+        }
+        params.light.position = 'left'
+        return false
+    })
+    $('#ambientintensity').val(params.light.aIntensity)
+    $('#ambientintensity').change(function() {
+        var intensity = parseFloat($(this).val())
+        if (scene.children.length >= 2) {
+            var myLight = scene.children[1]
+            myLight.intensity = intensity
+        }
+        return false
+    })
+    $('#lightright').click(function() {
+        if (scene.children.length >= 3) {
+            var myLight = scene.children[2]
+            if (params.light.position == 'left') {
+                var X = -myLight.position.x
+                var Z = -myLight.position.z
+                myLight.position.set(X, 0, Z)
+            }
+        }
+        params.light.position = 'right'
+        return false
+    })
+//    $('#lightintensity').val(params.light.intensity)
+//    $('#lightintensity').change(function() {
+//        var intensity = parseFloat($(this).val())
+//        if (scene.children.length >= 3) {
+//            var myLight = scene.children[2]
+//            myLight.intensity = intensity
+//        }
+//        return false
+//    })
+    
+    function is5053TimeSpan() {
+        var r
+        var pathname = window.location.pathname
+        var is5053 = pathname.includes('1950') || pathname.includes('5053') || pathname.includes('50-53') || pathname.includes('50_53')
+        var is4760 = pathname.includes('1947') || pathname.includes('4760') || pathname.includes('47-60') || pathname.includes('47_60')
+        if (is5053 && !is4760)
+            r = true
+        else if (!is5053 && is4760)
+            r = false
+        else { // either or both
+            console.log('Time span error. Taking 1950-53 by default.')
+            r = true
+        }
+        //return r
+        return false
+    }
+    
+    // Important values
+    const globe = Globe()(document.getElementById('globeViz'))
+    const scene = globe.scene()
+    const camera = globe.camera()
+    const controls = globe.controls()
+    var pointsD, labelsD, pathsD, paths2D, dotsD
+    const initLoc = { lat: 10, lng: -88.16, altitude: 5 } // Joliet
+    const basicTravelTransition = 2000
+    const restartTransition = basicTravelTransition * 2
+    const jumpTransition = basicTravelTransition
+    const tourTransition = basicTravelTransition * 4
+    const LAT = 10
+    var is5053 = is5053TimeSpan()
+    var scrollInRange = true
+    var hideDescTimeout
+    
+    const INIT_WIDTH = window.innerWidth
+    const INIT_HEIGHT = window.innerHeight
+    
+    // Touring values
+    var poleNames = {}
+    var pathNames = {}
+    var sphereNames = {}
+    var fullItinerary = is5053 ? ['???---Paris---Jan 1, 1950'] : ['???---New York City---Jan 1, 1947']
+    var currentStayDate
+    var tourIntId, tourType = undefined, tourState = 'off' // off, on, to-stop, one-move
+    
+    // Slider
+    const $element = $('input[type="range"]')
+    const $tooltip = $('#range-tooltip')
+    var $handle
+    $element
+      .rangeslider({
+        polyfill: false,
+        onInit: function() {
+          $handle = $('.rangeslider__handle', this.$range);
+          updateState($handle[0], this.value);
+        },
+        rangeClass: isForwardColor ? 'rangeslider' : 'rangeslider-backward',
+      })
+      .on('input', function() {
+        updateState($handle[0], this.value);
+      });
+    // Change the state of the slider
+    function updateState(el, val) {
+      if (typeof pathsD !== 'undefined') {
+        $handle[0].style.borderColor = pathsD[val*2].color
+        var stepParts = fullItinerary[val].split('---')
+        var city = stepParts[1]
+        var date = stepParts[2]
+        var text = city + ' - ' + date
+        $tooltip.html(text)
+      }
+      else {
+        $handle[0].style.borderColor = isForwardColor ? '#fee085' : '#d51020' // no longer asking is5053 here
+        $tooltip.html(is5053 ? 'Paris - Jan 1, 1950' : 'New York City - Jan 1, 1947')
+      }
+      if (tourState != 'on' && tourState != 'one-move') {
+          if (val == 0)
+            $('#back').addClass('disabled-link')
+          else
+            $('#back').removeClass('disabled-link')
+          if (val == $('#rangeSlider').prop('max'))
+            $('#next').addClass('disabled-link')
+          else
+            $('#next').removeClass('disabled-link')
+      }
+    }
+    
+    // Highlighting functions
+    var poleIds = {}
+    var labelIds = {}
+    var pathIds = {}
+    var currentHighlightedPole = null
+    var currentHighlightedLabel = null
+    var currentHighlightedPath = null
+    var currentHighlightedSphere = null
+    
+    function clickOnPoleOrLabel(pole, label) {
+        if (pole != currentHighlightedPole && label != currentHighlightedLabel) {
+            if (currentHighlightedPole != null && currentHighlightedLabel != null) {
+                unhighlightPole(currentHighlightedPole)
+                unhighlightLabel(currentHighlightedLabel)
+            }
+            highlightPole(pole)
+            currentHighlightedPole = pole
+            highlightLabel(label)
+            currentHighlightedLabel = label
+        }
+        else { // (pole == currentHighlightedPole && label == currentHighlightedLabel)
+            unhighlightPole(pole)
+            currentHighlightedPole = null
+            unhighlightLabel(label)
+            currentHighlightedLabel = null
+        }
+    }
+    
+    function clickOnPole(pole) {
+        var label = labelIds[pole.id]
+        clickOnPoleOrLabel(pole, label)
+    }
+    
+    function clickOnLabel(d) {
+        var label = labelIds[d.id]
+        var pole = poleIds[label.id]
+        clickOnPoleOrLabel(pole, label)
+    }
+    
+    function clickOnPath(d) {
+        var path = pathIds[d.id]
+        if (path != currentHighlightedPath) {
+            if (currentHighlightedPath != null)
+                unhighlightPath(currentHighlightedPath)
+            highlightPath(path)
+            currentHighlightedPath = path
+        }
+        else { // (path == currentHighlightedPath)
+            unhighlightPath(path)
+            currentHighlightedPath = null
+        }
+    }
+    
+    function clickOnSphere(d) {
+        if (d.type == 'sphere') {
+            if (d != currentHighlightedSphere) {
+                if (currentHighlightedSphere != null)
+                    unhighlightSphere(currentHighlightedSphere)
+                highlightSphere(d)
+                currentHighlightedSphere = d
+            }
+            else { // (d == currentHighlightedSphere)
+                unhighlightSphere(d)
+                currentHighlightedSphere = null
+            }
+        }
+    }
+    
+    function clearCurrentSelection() {
+        // Unhighlight pole and label
+        if (currentHighlightedPole != null && currentHighlightedLabel != null) {
+            unhighlightPole(currentHighlightedPole)
+            currentHighlightedPole = null
+            unhighlightLabel(currentHighlightedLabel)
+            currentHighlightedLabel = null
+        }
+        // Unhighlight path
+        if (currentHighlightedPath != null) {
+            unhighlightPath(currentHighlightedPath)
+            currentHighlightedPath = null
+        }
+        // Unhighlight sphere
+        if (currentHighlightedSphere != null) {
+            unhighlightSphere(currentHighlightedSphere)
+            currentHighlightedSphere = null
+        }
+    }
+    
+    // Code 1
+    init()
+    awaitData()
+    
+    //window.onmousemove = function(ev) {
+    //    if (ev.y < 60) {
+    //    }
+    //}
+    
+    // Functions 1
+    function drawGlobe() {
+      globe.globeImageUrl(params.globe.globeImage)
+      globe.showAtmosphere(!isLightScheme)
+      scene.background = new THREE.Color(params.globe.backgroundColor)
+      document.body.style.backgroundColor = params.globe.backgroundColor
+    }
+    
+    function init() {
+        drawGlobe()
+        
+        const WIDTH = INIT_WIDTH * 0.98
+        const HEIGHT = INIT_HEIGHT * 4
+        
+        const R = (270 - (-90)) / (2 * Math.PI)
+        
+        //var mleft = window.innerWidth/2
+        //var mtop = 50
+        //$('#mytooltip').css( { marginLeft : mleft+"px", marginTop : mtop+"px", position: "fixed" } );
+        
+        //const distThreshold = 2.5
+        //var prevAlt = initLoc.altitude <= distThreshold ? 'close' : 'far'
+        //var currentAlt
+        //function updateLabelSize (altitude) {
+        //    currentAlt = altitude <= distThreshold ? 'close' : 'far'
+        //    if (currentAlt != prevAlt) {
+        //        if (currentAlt == 'close')
+        //            globe.labelSize(d => d.type == 'city' ? params.labelCity.closeSize : params.labelYear.size)
+        //        else // (currentAlt == 'far')
+        //            globe.labelSize(d => d.type == 'city' ? params.labelCity.farSize : params.labelYear.size)
+        //        prevAlt = currentAlt
+        //    }
+        //}
+        
+        globe
+        .width(WIDTH)
+        .height(HEIGHT)
+        .pointOfView(initLoc, 4000)
+        .onZoom(function (ev) {
+            if (typeof controls.MOUSE_EVENT !== 'undefined') {
+                // Scroll
+                // > 0 => scroll down
+                // < 0 => scroll up
+                if (controls.MOUSE_EVENT.action == 'scroll' && !controls.MOUSE_EVENT.ctrlKey) {
+                    var deltaY = controls.MOUSE_EVENT.deltaY
+                    if (scrollInRange == 'yes' ||
+                        scrollInRange == 'no, top' && deltaY > 0 ||
+                        scrollInRange == 'no, bottom' && deltaY < 0) {
+                        
+                        var step = deltaY < 0 ? -1 : 1
+                        //for (var i=0; i<30; i++)
+                        //    window.scrollBy(0, step)
+                        //var step = controls.MOUSE_EVENT.deltaY * 10
+                        step *= 100
+                        window.scrollBy(0, step)
+                        //window.scrollBy({
+                        //  top: step,
+                        //  left: 0,
+                        //  behavior: 'smooth'
+                        //});
+                    }
+                }
+                
+                // Label size
+                if ($('#zoom-independent').prop('checked') && controls.MOUSE_EVENT.action == 'zoom' && controls.MOUSE_EVENT.ctrlKey)
+                    updateLabelSize(ev.altitude)
+                
+                // Reset status
+                setTimeout(() => {
+                    controls.MOUSE_EVENT.action = null
+                }, 100);
+            }
+            
+            // Adjust scroll margins
+            var currentAlt = globe.pointOfView().altitude
+            var initTop = window.innerHeight // /1.1
+            var topLimit
+            if (currentAlt <= 5)
+                topLimit = straightlineEquation(5, initTop, 2.3, 0, currentAlt)
+            else
+                topLimit = straightlineEquation(10, initTop*1.5, 5, initTop, currentAlt)
+            var globeHeight = globe.height()
+            var bottomLimit = globeHeight - topLimit
+            var newTop
+            if (topLimit + window.innerHeight <= bottomLimit) {
+                var currentScroll = Math.max(
+                    document.scrollingElement.scrollTop,
+                    document.documentElement.scrollTop
+                )
+                if (currentScroll < topLimit) {
+                    newTop = topLimit
+                    if (typeof controls.MOUSE_EVENT !== 'undefined' && controls.MOUSE_EVENT.deltaY > 0)
+                        scrollInRange = 'yes'
+                    else
+                        scrollInRange = 'no, top'
+                }
+                else if (currentScroll + window.innerHeight > bottomLimit) {
+                    newTop = bottomLimit - window.innerHeight
+                    if (typeof controls.MOUSE_EVENT !== 'undefined' && controls.MOUSE_EVENT.deltaY < 0)
+                        scrollInRange = 'yes'
+                    else
+                        scrollInRange = 'no, bottom'
+                }
+                else
+                    scrollInRange = 'yes'
+            }
+            else {
+                // never runs this part of the code
+                newTop = globeHeight/2 - window.innerHeight/2
+                scrollInRange = 'yes'
+            }
+            
+            setTimeout(() => {
+                window.scrollTo({top: newTop, behavior: 'smooth'})
+                //scrollInRange = true
+            }, 100)
+            
+            // Label size
+            if ($('#zoom-independent').prop('checked') && tourState != 'off')
+                updateLabelSize(ev.altitude)
+            
+            // Flash light holder
+            //if (scene.children.length >= 3) {
+            //    var sect = ev.lng + 90
+            //    var ang = sect / R
+            //    var X = R * Math.sin(ang) * (params.light.position == 'left' ? -1 : 1)
+            //    var Z = R * Math.cos(ang) * (params.light.position == 'left' ? -1 : 1)
+            //    var myLight = scene.children[2]
+            //    myLight.position.set(X, 0, Z)
+            //}
+        })
+        .onPointClick(pole => {
+            clickOnPole(pole)
+        })
+        //.onPointHover(pole => {
+        //    if (pole) {
+        //        city = pole.city.replace('ã', 'a').replace('è', 'e').replace('/', '--') // from notebook
+        //       $('#timeline')
+        //        .attr('src', 'timelines/' + city + '.png')
+        //        .show()
+        //    }
+        //    else {
+        //        $('#timeline')
+        //        .attr('src', '')
+        //        .hide()
+        //    }
+        //})
+        //.onLabelHover(label => {
+        //    if (label && 'text2' in label) {
+        //        city = label.text2.replace('ã', 'a').replace('è', 'e').replace('/', '--') // from notebook
+        //        $('#timeline')
+        //        .attr('src', 'timelines/' + city + '.png')
+        //        .show()
+        //    }
+        //    else {
+        //        $('#timeline')
+        //        .attr('src', '')
+        //        .hide()
+        //    }
+        //})
+        .onLabelClick(label => {
+            clickOnLabel(label)
+        })
+        .onLabelClick(label => {
+            clickOnLabel(label)
+        })
+        .onPath2Click(path => {
+            clickOnPath(path)
+        })
+        .onCustomLayerClick(dot => {
+            clickOnSphere(dot)
+        })
+        
+        var globeDiv = document.getElementById('globeViz')
+        globeDiv.addEventListener('dblclick', function(ev) {
+            var currentAlt = globe.pointOfView().altitude
+            if (currentAlt < 3)
+                globe.pointOfView({altitude: 5}, jumpTransition)
+            else
+                globe.pointOfView({altitude: 1}, jumpTransition)
+        })
+        
+        //var globeDiv = document.getElementById('globeViz')
+        //globeDiv.addEventListener('mousedown', function(ev) {
+        //  myControlKey = ev.ctrlKey
+        //  if (ev.button == 2)
+        //    clearCurrentSelection()
+        //})
+        
+        // Light
+        setTimeout(() => {
+            if (scene.children.length >= 3) {
+                scene.children[1].intensity = params.light.aIntensity // ambient light high intensity
+                scene.children[2].intensity = 0 // no flash light
+            }
+        }, 100);
+        
+        controls.dampingFactor = 1
+        controls.rotateSpeed = 1
+        
+        // Globe coordinates
+        // TODO
+    }
+    
+    function awaitData() {
+        d3.queue()
+        .defer(d3.csv, is5053 ? 'data/points.csv' : 'data/points4760.csv')
+        .defer(d3.csv, is5053 ? 'data/labels.csv' : 'data/labels4760.csv')
+        .defer(d3.csv, is5053 ? 'data/paths.csv' : 'data/paths4760.csv')
+        .defer(d3.csv, is5053 ? 'data/path_colors.csv' : 'data/path_colors4760.csv')
+        .await(ready)
+    }
+    
+    function ready(error, pointsData, labelsData, pathsData, pathColorsData) {
+        // Code 2
+        readData()
+        loadData()
+        drawInit()
+        drawTransitionToDefault()
+        prepareHighlightableData()
+        prepareTouringData()
+        stop()
+        
+        // Functions 2
+        function readData() {
+            var points = []
+            var pointLabelsDictList = {}
+            var pointAndLabelIdDict = {}
+            var pointTickDates = {}
+            var labels = []
+            var paths = []
+            var paths2 = []
+            var pathLabels = []
+            var pathCities = []
+            var pathDates = []
+            var pathActions = []
+            var dots = []
+            
+            var alts = unpack(pointsData, 'ALTITUDE')
+            var totalDays = Math.max.apply(null, alts)
+            
+            for (var i=0; i<pointsData.length; i++) {
+                var pointData = pointsData[i]
+                var point = {
+                    lat: pointData['LATITUDE'],
+                    lng: pointData['LONGITUDE'],
+                    altitude: pointData['ALTITUDE'] / (totalDays * 10/4),
+                    city: pointData['CITY'],
+                    id: i,
+                    type: 'thinPole', // thinPole or thickPole
+                    name: null, // label (to be filled below)
+                }
+                var point2 = {
+                    lat: pointData['LATITUDE'],
+                    lng: pointData['LONGITUDE'],
+                    altitude: pointData['ALTITUDE'] / (totalDays * 10/4),
+                    city: pointData['CITY'],
+                    id: i,
+                    type: 'thickPole', // thinPole or thickPole
+                    name: null, // label (to be filled below)
+                }
+                points.push(point)
+                points.push(point2)
+                pointLabelsDictList[pointData['CITY']] = []
+                pointAndLabelIdDict[pointData['CITY']] = i
+                pointTickDates[pointData['CITY']] = []
+                
+                var dot = {
+                    lat: pointData['LATITUDE'],
+                    lng: pointData['LONGITUDE'],
+                    alt: 0 / (totalDays * 10/4),
+                    type: 'tick', // sphere or tick
+                    name: null, // label
+                }
+                dots.push(dot)
+            }
+            
+            labelReplacement = {
+                'Sidi Bel Abbès': 'Sidi Bel Abbes',
+                'São Paulo': 'Sao Paulo',
+            }
+            for (var i=0; i<labelsData.length; i++) {
+                var labelData = labelsData[i]
+                if (labelData['TYPE'] == 'city') {
+                    var label = {
+                        lat: labelData['LATITUDE'] - (labelData['TYPE'] == 'city' ? 0.2 : 0),
+                        lng: labelData['LONGITUDE'] - (labelData['TYPE'] == 'city' ? 0 : -0.3),
+                        altitude: labelData['ALTITUDE'] / (totalDays * 10/4),
+                        type: labelData['TYPE'], // city or year
+                        text: labelData['TEXT'] in labelReplacement ? labelReplacement[labelData['TEXT']] : labelData['TEXT'], // label
+                        id: pointAndLabelIdDict[labelData['TEXT']]
+                    }
+                    var label2 = {
+                        lat: labelData['LATITUDE'] - (labelData['TYPE'] == 'city' ? 0.2 : 0),
+                        lng: labelData['LONGITUDE'] - (labelData['TYPE'] == 'city' ? 0 : -0.3),
+                        altitude: labelData['ALTITUDE'] / (totalDays * 10/4),
+                        type: 'citybckg', // city or year
+                        text: '_', // label
+                        text2: labelData['TEXT'] in labelReplacement ? labelReplacement[labelData['TEXT']] : labelData['TEXT'], // label
+                        id: pointAndLabelIdDict[labelData['TEXT']]
+                    }
+                    labels.push(label)
+                    labels.push(label2)
+                }
+                //if (labelData['TYPE'] == 'year') {
+                //    var dot = {
+                //        lat: labelData['LATITUDE'],
+                //        lng: labelData['LONGITUDE'],
+                //        alt: labelData['ALTITUDE'] / (totalDays * 10/4),
+                //        type: 'tick', // sphere or tick
+                //        name: null, // label
+                //    }
+                //    dots.push(dot)
+                //}
+            }
+            
+            var LABEL_LNG_SHIFT = 0.3
+            var pathData = pathsData[0]
+            var p1 = [
+                pathData['LATITUDE'] / 1,
+                pathData['LONGITUDE'] / 1,
+                pathData['ALTITUDE'] / (totalDays * 10/4),
+            ]
+            var city1 = pathData['CITY']
+            var date1 = pathData['DATE']
+            var action = 'arrival'
+            var dot = {
+                lat: pathData['LATITUDE'],
+                lng: pathData['LONGITUDE'],
+                alt: pathData['ALTITUDE'] / (totalDays * 10/4),
+                type: 'sphere', // sphere or tick
+                name: `<div class="dot tooltip"><span class="label">${action=='arrival'?'Arrived to':'Left from'} ${pathData['CITY']} on ${pathData['DATE']}</span></div>`,
+                city: pathData['CITY'],
+                date: pathData['DATE'],
+                action: action,
+            }
+            dots.push(dot)
+            var label
+            var year = pathData['DATE'].split(', ')[1]
+            if (!pointTickDates[city1].includes(year)) {
+                label = {
+                    lat: pathData['LATITUDE'] / 1,
+                    lng: pathData['LONGITUDE'] / 1 + LABEL_LNG_SHIFT,
+                    altitude: pathData['ALTITUDE'] / (totalDays * 10/4),
+                    type: 'year', // city or year
+                    text: year,
+                    id: null,
+                }
+                labels.push(label)
+                pointTickDates[city1].push(year)
+            }
+            var p2, city2
+            for (var i=1; i<pathsData.length; i++) {
+                pathData = pathsData[i]
+                p2 = [
+                    pathData['LATITUDE'] / 1,
+                    pathData['LONGITUDE'] / 1,
+                    pathData['ALTITUDE'] / (totalDays * 10/4),
+                ]
+                city2 = pathData['CITY']
+                date2 = pathData['DATE']
+                paths.push([p1, p2])
+                paths2.push([p1, p2])
+                var pLabel
+                //action = city1 == city2 ? 'departure' : 'arrival'
+                action = i%2!=0 ? 'departure' : 'arrival'
+                if (action == 'departure') {
+                    pointLabelsDictList[city2].push([date1, date2])
+                    pLabel = `<div class="path tooltip"><i class="fa fa-compass"></i><span class="label"> In ${city1} from ${date1} to ${date2}</span></div>`
+                }
+                else
+                    pLabel = `<div class="path tooltip"><i class="fa fa-compass"></i><span class="label"> From ${city1} to ${city2} on ${pathData['DATE']}</span></div>`
+                pathLabels.push(pLabel)
+                pathCities.push({'src': city1, 'dst': city2})
+                pathDates.push(pathData['DATE'])
+                pathActions.push(action)
+                p1 = p2
+                city1 = city2
+                date1 = date2
+                dot = {
+                    lat: pathData['LATITUDE'],
+                    lng: pathData['LONGITUDE'],
+                    alt: pathData['ALTITUDE'] / (totalDays * 10/4),
+                    type: 'sphere', // sphere or tick
+                    name: `<div class="dot"><span class="label tooltip">${action=='arrival'?'Arrived to':'Left from'} ${pathData['CITY']} on ${pathData['DATE']}</span></div>`,
+                    city: pathData['CITY'],
+                    date: pathData['DATE'],
+                    action: action,
+                }
+                dots.push(dot)
+                year = pathData['DATE'].split(', ')[1]
+                if (!pointTickDates[city1].includes(year)) {
+                    label = {
+                        lat: pathData['LATITUDE'] / 1,
+                        lng: pathData['LONGITUDE'] / 1 + LABEL_LNG_SHIFT,
+                        altitude: pathData['ALTITUDE'] / (totalDays * 10/4),
+                        type: 'year', // city or year
+                        text: year,
+                        id: null,
+                    }
+                    labels.push(label)
+                    pointTickDates[city1].push(year)
+                }
+            }
+            
+            for (var i=0; i<points.length; i++) {
+                var point = points[i]
+                var city = point.city
+                var stays = pointLabelsDictList[city]
+                var label = `<div class="point tooltip"><i class="fa fa-map-marker"></i><span class="label header"> ${city}</span><br>`
+                for (var j=stays.length-1; j>=0; j--) {
+                    var stay = stays[j]
+                    var date1 = stay[0]
+                    var date2 = stay[1]
+                    if (date1 == date2)
+                        label += `<span class="label row" id=${date1.replace(/ /g, '').replace(',', '-')}>On ${date1}</span><br>`
+                    else
+                        label += `<span class="label row" id=${date1.replace(/ /g, '').replace(',', '-')}>From ${date1} to ${date2}</span><br>`
+                }
+                label += `</div>`
+                point.name = label
+                labels[pointAndLabelIdDict[point.city]*2].name = label
+                labels[pointAndLabelIdDict[point.city]*2+1].name = label
+            }
+            
+            var colorAttr = isForwardColor ? 'HEXCODE1' : 'HEXCODE1R'
+            for (var i=0; i<paths.length; i++) {
+                paths[i].id = i
+                paths[i].name   = pathColorsData[i][colorAttr] == 'grey' ? pathLabels[i].replace(' on ', ' around ') : pathLabels[i]
+                paths[i].color  = pathColorsData[i][colorAttr]
+                paths[i].color1 = pathColorsData[i].HEXCODE1
+                paths[i].color1r= pathColorsData[i].HEXCODE1R
+                paths[i].color2 = pathColorsData[i].HEXCODE2
+                paths[i].color3 = pathColorsData[i].HEXCODE3
+                paths[i].color4 = pathColorsData[i].HEXCODE4
+                paths[i].src = pathCities[i].src
+                paths[i].dst = pathCities[i].dst
+                paths[i].date = pathDates[i]
+                paths[i].action = pathActions[i]
+                paths2[i].id = i
+                paths2[i].name   = pathColorsData[i][colorAttr] == 'grey' ? pathLabels[i].replace(' on ', ' around ') : pathLabels[i]
+                paths2[i].color  = pathColorsData[i][colorAttr]
+                paths2[i].color1 = pathColorsData[i].HEXCODE1
+                paths2[i].color1r= pathColorsData[i].HEXCODE1R
+                paths2[i].color2 = pathColorsData[i].HEXCODE2
+                paths2[i].color3 = pathColorsData[i].HEXCODE3
+                paths2[i].color4 = pathColorsData[i].HEXCODE4
+                paths2[i].src = pathCities[i].src
+                paths2[i].dst = pathCities[i].dst
+                paths2[i].date = pathDates[i]
+                paths2[i].action = pathActions[i]
+            }
+            
+            pointsD = points
+            labelsD = labels
+            pathsD = paths
+            paths2D = paths2
+            dotsD = dots
+        }
+        
+        function loadData() {
+          globe
+          .pointsData(pointsD)
+          .labelsData(labelsD)
+          .pathsData(pathsD)
+          .paths2Data(paths2D)
+          .customLayerData(dotsD)
+        }
+        
+        function drawInit() {
+          globe
+          .pointColor(d => d.type == 'thinPole' ? params.point.color : params.point2.color)
+          .pointRadius(d => d.type == 'thinPole' ? params.point.radius : params.point2.radius)
+          .pointAltitude(0)
+          
+          .labelIncludeDot(false)
+          //.labelColor(d => d.type == 'city' ? params.labelCity.color : params.labelYear.color)
+          .labelSize(d => d.type == 'city' ? params.labelCity.size : d.type == 'citybckg' ? params.labelCityBckg.size : params.labelYear.size)
+          .labelAltitude(0)
+          .labelLabel('name')
+          
+          .pathColor(params.path.color)
+          .pathStroke(() => params.path.stroke)
+          .pathPointAlt(0)
+          
+          .path2DashLength(null)
+          .path2DashGap(null)
+          .path2DashAnimateTime(null)
+          .path2Color(() => params.path2.colorOff)
+          .path2PointAlt(0)
+          
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? params.dot.sphereColor : params.dot.tickColor
+            var radius = d.type == 'sphere' ? params.dot.sphereRadius : params.dot.tickRadius
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+          .customThreeObjectUpdate((obj, d) => {
+            Object.assign(obj.position, globe.getCoords(d.lat, d.lng, 0)) // d.alt -> 0
+          })
+          setTimeout(() => globe.labelColor(d => d.type == 'city' ? params.labelCity.color : d.type == 'citybckg' ? params.labelCityBckg.color : params.labelYear.color), 50)
+        }
+        
+        function showDescription() {
+            clearTimeout(hideDescTimeout)
+            $('#info .description').css({
+                'height': 'auto',
+                'top': 'auto',
+            })
+        }
+        
+        function hideDescription() {
+            hideDescTimeout = setTimeout(() => {
+                $('#info .description').css({
+                    'height': 0,
+                    'top': '-1000px',
+                })
+            }, 1000)
+        }
+        
+        function drawDefault() {
+          globe
+          .pointAltitude('altitude')
+          .labelAltitude('altitude')
+          .pathPointAlt(d => d[2])
+          .path2PointAlt(d => d[2])
+          .customThreeObject(d => {
+            var color = d.type == 'sphere' ? params.dot.sphereColor : params.dot.tickColor
+            var radius = d.type == 'sphere' ? params.dot.sphereRadius : params.dot.tickRadius
+            return new THREE.Mesh(
+              new THREE.SphereBufferGeometry(radius),
+              new THREE.MeshLambertMaterial({ color: color })
+            )
+          })
+          .customThreeObjectUpdate((obj, d) => {
+            Object.assign(obj.position, globe.getCoords(d.lat, d.lng, d.alt)) // d.alt -> 0
+          })
+          setTimeout(() => globe.labelColor(d => d.type == 'city' ? params.labelCity.color : d.type == 'citybckg' ? params.labelCityBckg.color : params.labelYear.color), 50)
+          
+          setTimeout(() => {
+            $('.myhideable').css('opacity', 0)
+            $('.my-control-class').css('opacity', 0);
+            //$('#tour-div').css('background-color', '#FFFFFF00');
+            //$('.description').css('visibility', 'hidden')
+            
+            //$('#info').css('opacity', 0)
+            $(function() {
+              $('#info .title').hover(function() {
+                //$('#info').css('opacity', 1);
+                if (tourState != 'on') {
+                    $('.myhideable').css('opacity', 1)
+                    showDescription()
+                    //$('.description').css('visibility', 'visible')
+                }
+              }, function() {
+                // on mouseout, reset the background colour
+                //$('#info').css('opacity', 0);
+                $('.myhideable').css('opacity', 0)
+                hideDescription()
+                //$('.description').css('visibility', 'hidden')
+              });
+            });
+            
+            //Description
+            $(function() {
+              $('#info .description').hover(function() {
+                //$('#info').css('opacity', 1);
+                if (tourState != 'on') {
+                    if ($('.myhideable').css('opacity') > 0) {
+                        $('.myhideable').css('opacity', 1)
+                        showDescription()
+                    }
+                    //$('.description').css('visibility', 'visible')
+                }
+              }, function() {
+                // on mouseout, reset the background colour
+                //$('#info').css('opacity', 0);
+                $('.myhideable').css('opacity', 0)
+                hideDescription()
+                //$('.description').css('visibility', 'hidden')
+              });
+            });
+            
+            //$('#sidebar').css('opacity', 0)
+            $(function() {
+              $('#sidebar').hover(function() {
+                //$('#sidebar').css('opacity', 1);
+                if (tourState != 'on') {
+                    $('.myhideable').css('opacity', 1)
+                    showDescription()
+                    //$('.description').css('visibility', 'visible')
+                }
+              }, function() {
+                // on mouseout, reset the background colour
+                //$('#sidebar').css('opacity', 0);
+                $('.myhideable').css('opacity', 0)
+                hideDescription()
+                //$('.description').css('visibility', 'hidden')
+              });
+            });
+            
+            //$('.my-control-class').css('opacity', 0)
+            //$('#tour-div').css('background-color', '#FFFFFF00');
+            $(function() {
+              $('#tour-div').hover(function() {
+                $('.my-control-class').css('opacity', 1);
+                if (tourState == 'on')
+                    $('#tour-div').css('background-color', '#FFFFFFEE');
+                else
+                    $('#tour-div').css('background-color', '#FFFFFF66');
+                //$('.myhideable').css('opacity', 1)
+              }, function() {
+                // on mouseout, reset the background colour
+                if (tourState != 'on') {
+                    $('.my-control-class').css('opacity', 0);
+                    $('#tour-div').css('background-color', '#FFFFFF00');
+                    //$('.myhideable').css('opacity', 0)
+                }
+              });
+            });
+            hideDescription()
+          }, 4000)
+        }
+        
+        function drawTransitionToDefault() {
+          setTimeout(() => {
+            var duration = 3000
+            globe
+            .pointsTransitionDuration(duration)
+            .labelsTransitionDuration(duration)
+            .pathTransitionDuration(duration)
+            .path2TransitionDuration(duration)
+            drawDefault()
+          }, 5000);
+        }
+        
+        function prepareHighlightableData() {
+            var poles = globe.pointsData()
+            poles.forEach(d => poleIds[d.id] = d)
+            var labels = globe.labelsData()
+            labels.forEach(d => {if (d.id !== null && d.type == 'city') labelIds[d.id] = d})
+            var paths = globe.pathsData()
+            paths.forEach(d => pathIds[d.id] = d)
+        }
+        
+        function prepareTouringData() {
+            var poles = globe.pointsData()
+            poles.forEach(d => poleNames[d.city] = d)
+            var paths = globe.pathsData()
+            paths.forEach(d => {
+                if (d.action == 'arrival') {
+                    var key = d.src+'---'+d.dst+'---'+d.date
+                    pathNames[key] = d
+                    fullItinerary.push(key)
+                }
+            })
+            var dots = globe.customLayerData()
+            dots.forEach(d => {
+                if (d.action == 'arrival') {
+                    var key = d.city+'---'+d.date
+                    sphereNames[key] = d
+                }
+            })
+            $('#slider-left-label').html(is5053 ? 1950 : 1947)
+            $('#slider-right-label').html(is5053 ? 1953 : 1960)
+            $('#rangeSlider').prop({'max': fullItinerary.length-1})
+            $('#rangeSlider').val(0)
+            $element.rangeslider('update', true);
+            $('#back').addClass('disabled-link')
+        }
+        
+        function startAnimation1() {
+          globe
+          .pathStroke(params.path.stroke)
+          .path2DashLength(x => params.path2.dashGap / euclideanDistance(x)) // Invert length and gap
+          .path2DashGap(x => params.path2.dashLength / euclideanDistance(x)) // Invert length and gap
+          .path2DashAnimateTime(x => params.path2.dashAnimateTime * euclideanDistance(x))
+          .path2Color(() => params.path2.colorOn)
+        }
+        
+        function startAnimation2() {
+          globe
+          .pathStroke(0)
+          .path2DashLength(x => params.path2.dashLength / euclideanDistance(x))
+          .path2DashGap(x => params.path2.dashGap / euclideanDistance(x))
+          .path2DashAnimateTime(x => params.path2.dashAnimateTime * euclideanDistance(x))
+          .path2Color(() => params.path2.colorOn)
+        }
+        
+        function stopAnimation() {
+          globe
+          .pathStroke(params.path.stroke)
+          .pathColor(params.path.color)
+          .path2DashLength(null)
+          .path2DashGap(null)
+          .path2DashAnimateTime(null)
+          .path2Color(() => params.path2.colorOff)
+        }
+        
+        function travel(i, first, direction) {
+            //window.scroll(0, window.innerHeight) // /1.1
+            var firstTravel = typeof first == 'undefined' ? false : first
+            var travelDir = typeof direction == 'undefined' ? 'forward' : direction
+            var step = fullItinerary[i]
+            var stepParts = step.split('---')
+            if (!firstTravel) {
+                var path = travelDir == 'forward' ? pathNames[step] : pathNames[fullItinerary[i+1]] // 'backward'
+                if (path != currentHighlightedPath)
+                    clickOnPath(path)
+                currentStayDate = path.date.replace(/ /g, '').replace(',', '-')
+            }
+            else
+                currentStayDate = stepParts[2].replace(/ /g, '').replace(',', '-')
+            var city = stepParts[1]
+            var pole = poleNames[city]
+            var sName = stepParts[1] + '---' + stepParts[2]
+            var sphere = sphereNames[sName]
+            var goto = {lat: pole.lat/1-LAT*0.9, lng: pole.lng/1, altitude: 1.5}
+            var t = tourTransition
+            globe.pointOfView(goto, t, tourType)
+            setTimeout(() => {
+                if (!firstTravel) {
+                    setMyTooltipContent(path.name)
+                    showMyTooltip()
+                }
+            }, t*1/8)
+            setTimeout(() => {
+                hideMyTooltip()
+            }, t*1/2)
+            setTimeout(() => {
+                setMyTooltipContent(pole.name)
+                showMyTooltip()
+                if (pole != currentHighlightedPole) // delete this when data is fixed
+                clickOnPole(pole)
+                clickOnSphere(sphere)
+            }, t*5/8)
+            setTimeout(() => {
+                hideMyTooltip()
+                if (tourState != 'on')
+                    stop()
+            }, t)
+        }
+        
+        function back() {
+            var i = parseInt($('#rangeSlider').val())
+            if (i > 0) {
+                $('#rangeSlider').val(i-1).change()
+                travel(i-1, false, 'backward')
+            }
+        }
+        function next() {
+            var i = parseInt($('#rangeSlider').val())
+            if (i < fullItinerary.length-1 && tourState != 'to-stop') {
+                $('#rangeSlider').val(i+1).change()
+                travel(i+1)
+            }
+            else
+                stop()
+        }
+        function stop() {
+            $('#start').removeClass('disabled-link')
+            $('#stop').addClass('disabled-link')
+            if ($('#rangeSlider').val() == 0)
+                $('#back').addClass('disabled-link')
+            else
+                $('#back').removeClass('disabled-link')
+            if ($('#rangeSlider').val() == $('#rangeSlider').prop('max'))
+                $('#next').addClass('disabled-link')
+            else
+                $('#next').removeClass('disabled-link')
+            clearInterval(tourIntId)
+            if (tourState == 'to-stop')
+                clearCurrentSelection()
+            enableInteraction()
+            tourState = 'off'
+        }
+        function tour() {
+            tourIntId = setInterval(() => {
+                next()
+            }, tourTransition)
+        }
+        function start() {
+            disableInteraction()
+            clearCurrentSelection()
+            travel(parseInt($('#rangeSlider').val()), true)
+            tour()
+        }
+        
+        function startSceneMode() {
+            //$('#globeViz canvas').addClass('scene-mode-globe')
+            $('#top-band').addClass('scene-mode-top-band')
+            $('#bottom-band').addClass('scene-mode-bottom-band')
+            $('body').css('background-color', 'black')
+            $('#tour-div').addClass('tour-control-ontour')
+            
+            var newTop = INIT_HEIGHT + (INIT_HEIGHT - window.innerHeight) / 2
+            var newLeft = (INIT_WIDTH - window.innerWidth) / 2
+            window.scrollTo({top: newTop, left: newLeft, behavior: 'smooth'})
+        }
+        
+        function endSceneMode() {
+            //$('#globeViz canvas').removeClass('scene-mode-globe')
+            $('#top-band').removeClass('scene-mode-top-band')
+            $('#bottom-band').removeClass('scene-mode-bottom-band')
+            $('body').css('background-color', 'white')
+            $('#tour-div').removeClass('tour-control-ontour')
+        }
+        
+        function setMyTooltipContent(c) {
+            $('#mytooltip').html(c)
+            $('#mytooltip span').removeClass('bold')
+            $('#mytooltip #'+currentStayDate).addClass('bold')
+        }
+        function showMyTooltip() {
+            $('#mytooltip').removeClass('hidden')
+            $('#mytooltip').addClass('shown')
+            
+            //var tooltipWidth = $("#mytooltip")[0].getBoundingClientRect().width
+            //var mleft = window.innerWidth/2 - tooltipWidth/2
+            //$('#mytooltip').css('margin-left', mleft)
+        }
+        function hideMyTooltip() {
+            $('#mytooltip').removeClass('shown')
+            $('#mytooltip').addClass('hidden')
+        }
+        
+        $('#aton').click(function() {
+            globe.showAtmosphere(true)
+            return false
+        })
+        $('#atoff').click(function() {
+            globe.showAtmosphere(false)
+            return false
+        })
+        $('#aon1').click(function() {
+            startAnimation1()
+            return false
+        })
+        $('#aon2').click(function() {
+            startAnimation2()
+            return false
+        })
+        $('#aoff').click(function() {
+            stopAnimation()
+            return false
+        })
+        $('#restart').click(function() {
+            globe.pointOfView(initLoc, restartTransition)
+            drawGlobe()
+            drawInit()
+            drawTransitionToDefault()
+            return false
+        })
+        $('#jump').click(function() {
+            globe.pointOfView(randomLoc(), jumpTransition)
+            return false
+        })
+        $('#jump1').click(function() {
+            globe.labelSize(d => d.type == 'city' ? 0.1 : params.labelYear.size)
+            var goto = {lat: 43.703400-1, lng: 7.2663, altitude: 0.7}
+            globe.pointOfView(goto, jumpTransition)
+            setTimeout(() =>
+                //window.scroll(0, window.innerHeight/1.2)
+                window.scrollTo({top: window.innerHeight/1.2, behavior: 'smooth'})
+            , jumpTransition/2)
+            return false
+        })
+        $('#jump2').click(function() {
+            globe.labelSize(d => d.type == 'city' ? 0.4 : params.labelYear.size)
+            var goto = {lat: -34.603333+15, lng: -58.381667, altitude: 3.2}
+            globe.pointOfView(goto, jumpTransition)
+            setTimeout(() =>
+                //window.scroll(0, window.innerHeight/1)
+                window.scrollTo({top: window.innerHeight/1, behavior: 'smooth'})
+            , jumpTransition/2)
+            return false
+        })
+        $('#jump3').click(function() {
+            globe.labelSize(d => d.type == 'city' ? 0.2 : params.labelYear.size)
+            var goto = {lat: 34.05-20, lng: -118.25, altitude: 1.5}
+            globe.pointOfView(goto, jumpTransition)
+            setTimeout(() =>
+                //window.scroll(0, 0)
+                window.scrollTo({top: 0, behavior: 'smooth'})
+            , jumpTransition/2)
+            return false
+        })
+        $('#start').click(function() {
+            var band_height = INIT_HEIGHT * 110 / 656
+            $('.band').css('height', band_height)
+            $('#top-band').css('top', -band_height)
+            $('#bottom-band').css('bottom', -band_height)
+            startSceneMode()
+            
+            tourState = 'on'
+            $('#start').addClass('disabled-link')
+            $('#stop').removeClass('disabled-link')
+            $('#next').addClass('disabled-link')
+            $('#back').addClass('disabled-link')
+            start()
+            return false
+        })
+        $('#stop').click(function() {
+            endSceneMode()
+            
+            tourState = 'to-stop'
+            return false
+        })
+        $('#next').click(function() {
+            disableInteraction()
+            $('.myhideable').addClass('myhideable-forced-hidden')
+            tourState = 'one-move'
+            $('#start').addClass('disabled-link')
+            $('#stop').addClass('disabled-link')
+            $('#next').addClass('disabled-link')
+            $('#back').addClass('disabled-link')
+            next()
+            setTimeout(() => {
+                enableInteraction()
+                $('.myhideable').removeClass('myhideable-forced-hidden')
+            }, tourTransition)
+            return false
+        })
+        $('#back').click(function() {
+            disableInteraction()
+            $('.myhideable').addClass('myhideable-forced-hidden')
+            tourState = 'one-move'
+            $('#start').addClass('disabled-link')
+            $('#stop').addClass('disabled-link')
+            $('#next').addClass('disabled-link')
+            $('#back').addClass('disabled-link')
+            back()
+            setTimeout(() => {
+                enableInteraction()
+                $('.myhideable').removeClass('myhideable-forced-hidden')
+            }, tourTransition)
+            return false
+        })
+        
+        $('#showmytp').click(function() {
+            showMyTooltip()
+            return false
+        })
+        $('#hidemytp').click(function() {
+            hideMyTooltip()
+            return false
+        })
+        
+        function disableInteraction() {
+            // Disable pointer interaction
+            globe.enablePointerInteraction(false)
+            
+            // Disable general interaction
+            controls.enabled = false
+            
+            // Disable browser zoom (and scrolling) that gets enabled when disabling general interaction
+            $(document).keydown(function(event) {
+                if (//event.ctrlKey==true &&
+                   (event.which == '61' || event.which == '107' || event.which == '173' || event.which == '109' || event.which == '187' || event.which == '189')) {
+                    // 107 Num Key  +
+                    // 109 Num Key  -
+                    // 173 Min Key  hyphen/underscor Hey
+                    // 61 Plus key  +/= key
+                    event.preventDefault();
+                }
+            });
+            $(window).bind('mousewheel DOMMouseScroll', function (event) {
+                //if (event.ctrlKey == true)
+                    event.preventDefault();
+            });
+        }
+        
+        function enableInteraction() {
+            globe.enablePointerInteraction(true)
+            controls.enabled = true
+        }
+        
+        function disableButtons() {
+            $('#next').addClass('disabled-link')
+            $('#back').addClass('disabled-link')
+        }
+        
+        function enableButtons() {
+            $('#next').removeClass('disabled-link')
+            $('#back').removeClass('disabled-link')
+        }
+        
+        window.addEventListener("scroll", function(ev){
+            console.log('Scroll is happening...')
+            
+            if (tourState == 'on') {
+                var newTop = INIT_HEIGHT + (INIT_HEIGHT - window.innerHeight) / 2
+                var newLeft = (INIT_WIDTH - window.innerWidth) / 2
+                window.scrollTo({top: newTop, left: newLeft, behavior: 'smooth'})
+            }
+        });
+        
+        window.addEventListener("resize", function(ev){
+            console.log('Resize is happening...')
+            
+            if (tourState == 'on') {
+                var newTop = INIT_HEIGHT + (INIT_HEIGHT - window.innerHeight) / 2
+                var newLeft = (INIT_WIDTH - window.innerWidth) / 2
+                window.scrollTo({top: newTop, left: newLeft, behavior: 'smooth'})
+            }
+        });
+    }
+    
+    // Highlighting functions
+    function highlightPole(d) {
+        var poleColor = new THREE.MeshLambertMaterial({
+          color: params.point2.highHexColor,
+          transparent: params.point2.highOpacity < 1,
+          opacity: params.point2.highOpacity,
+        })
+        d.__threeObj.material = poleColor
+        d.highlighted = true
+    }
+    
+    function unhighlightPole(d) {
+        var poleColor = new THREE.MeshLambertMaterial({
+          color: params.point2.hexColor,
+          transparent: params.point2.opacity < 1,
+          opacity: params.point2.opacity,
+        })
+        d.__threeObj.material = poleColor
+        d.highlighted = false
+    }
+    
+    function highlightLabel(d) {
+        d.__threeObj.children[1].material.color.set(params.labelCity.highHexColor)
+        d.__threeObj.children[1].material.transparent = params.labelCity.highOpacity < 1
+        d.__threeObj.children[1].material.opacity = params.labelCity.highOpacity
+        d.highlighted = true
+    }
+    
+    function unhighlightLabel(d) {
+        d.__threeObj.children[1].material.color.set(params.labelCity.hexColor)
+        d.__threeObj.children[1].material.transparent = params.labelCity.opacity < 1
+        d.__threeObj.children[1].material.opacity = params.labelCity.opacity
+        d.highlighted = false
+    }
+    
+    function highlightPath(d) {
+        d.__threeObj.material.color.set(params.path.highHexColor)
+        d.__threeObj.material.linewidth = params.path.highStroke
+        d.highlighted = true
+    }
+    
+    function unhighlightPath(d) {
+        d.__threeObj.material.color.set(d.color)
+        d.__threeObj.material.linewidth = params.path.stroke
+        d.highlighted = false
+    }
+    
+    function highlightSphere(d) {
+        d.__threeObj.material.color = params.dot.hSphereRGBColor
+        d.__threeObj.scale.setScalar(params.dot.hSphereRadiusScale)
+    }
+    
+    function unhighlightSphere(d) {
+        d.__threeObj.material.color = params.dot.sphereRGBColor
+        d.__threeObj.scale.setScalar(params.dot.sphereRadiusScale)
+    }
+    
+    // Utils
+    function euclideanDistance(a) {
+      p1 = a[0]
+      p2 = a[1]
+      xdiff = Math.pow((p1[0] - p2[0]), 2)
+      ydiff = Math.pow((p1[1] - p2[1]), 2)
+      zdiff = Math.pow((p1[2] - p2[2]), 2)
+      return Math.sqrt( xdiff + ydiff + zdiff)
+    }
+    
+    function unpack(rows, key) {
+      return rows.map(function(row) { return row[key]; });
+    }
+    
+    function randomLoc() {
+        var absX = Math.random() * 100
+        var sigX = Math.random() >= 0.5 ? 1 : -1
+        var x = sigX * absX
+        var absY = Math.random() * 100
+        var sigY = Math.random() >= 0.5 ? 1 : -1
+        var y = sigY * absY
+        var z = Math.random() * 4 + 2
+        var goto = {
+            lat: x,
+            lng: y,
+            altitude: z,
+        }
+        return goto
+    }
+    
+    function hexa2hexAndAlpha(hexa) {
+        if (hexa.length == 7)
+            hexa = hexa + 'FF'
+        var hex = hexa.slice(0, hexa.length-2)
+        var alpha = +('0x' + hexa.slice(-2)) / 255
+        return [hex, alpha]
+    }
+    function hex2rgbNorm(h) {
+      var r, g, b
+      r = +("0x" + h[1] + h[2]) / 255
+      g = +("0x" + h[3] + h[4]) / 255
+      b = +("0x" + h[5] + h[6]) / 255
+      return {r: r, g: g, b: b}
+    }
+    
+    function removeElement(a, e) {
+        var i = a.indexOf(e)
+        a.splice(i, 1)
+    }
+    
+    function straightlineEquation(x1, y1, x2, y2, x) {
+        y = ((y2 - y1) / (x2 - x1)) * (x - x1) + y1
+        return y
+    }
+    
+    document.body.onkeydown = function(ev) {
+    // https://keycode.info/
+        if (ev.keyCode == 27)
+            $('#stop').click()
+    }
+  </script>
+</body>

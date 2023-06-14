@@ -1,0 +1,10 @@
+CITY1,CITY2,HEXCODE1,HEXCODE1R,HEXCODE2,HEXCODE3,HEXCODE4
+New York City,New York City,#fd8f3d,#fd883b,#6dafd7,#8d98c7,#7dcdc3
+New York City,Mexico City,grey,grey,grey,grey,grey
+Mexico City,Mexico City,#fd8e3c,#fd8a3b,#6caed6,#8c97c6,#7cccc4
+Mexico City,San Diego,grey,grey,grey,grey,grey
+San Diego,San Diego,#fd8c3c,#fd8c3c,#6aaed6,#8c95c6,#7accc4
+San Diego,"Stockton, CA",#fd8c3c,#fd8c3c,#6aaed6,#8c95c6,#7accc4
+"Stockton, CA","Stockton, CA",#fd8c3c,#fd8e3c,#6aaed6,#8c95c6,#7accc4
+"Stockton, CA",San Francisco,#fd8a3b,#fd8e3c,#69add5,#8c94c5,#79cbc5
+San Francisco,San Francisco,#fd8a3b,#fd8f3d,#69add5,#8c94c5,#79cbc5

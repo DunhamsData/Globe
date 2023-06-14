@@ -1,0 +1,97 @@
+#info {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    transition: opacity 1s;
+}
+
+#info .title {
+    color: #333;
+    font-family: "Playfair Display", serif;
+    font-weight: bold;
+    line-height: normal;
+    text-align: none;
+    font-size: none;
+    margin: none;
+}
+#info .title {
+    font-size: 24px;
+    text-align: right;
+    white-space: nowrap;
+    margin-top: 10px;
+    margin-right: 20px;
+}
+#info .title span {
+    background-color: #FFFFFF66;
+    border-radius: 10px;
+    padding: 0 10px;
+}
+/*#info:hover {*/
+/*    opacity: 1 !important;*/
+/*}*/
+
+#info .description {
+    color: #333;
+    font-family: "Helvetica", serif;
+    font-weight: normal;
+    line-height: normal;
+    text-align: justify;
+    font-size: none;
+    margin: none;
+}
+#info .description {
+    font-size: 13px;
+    margin: 0px 20px 0px 20%;
+    background-color: #FFFFFF66;
+    border-radius: 10px;
+    padding: 10px;
+    
+    position: relative;
+    transition: all 1s;
+}
+
+.my-control-class {
+    transition: opacity 1s;
+}
+
+#sidebar {
+    background-color: #eee;
+}
+#sidebar {
+    position: fixed;
+    top: 111px;
+    width: 17%;
+    transition: opacity 1s;
+    z-index: 2;
+    background-color: #FFFFFF66;
+    border-radius: 10px;
+}
+
+#sidebar .item {
+    color: #333;
+    font-family: "Helvetica", serif;
+    font-weight: normal;
+    line-height: normal;
+    text-align: none;
+    font-size: none;
+    margin: none;
+}
+#sidebar .item {
+    font-size: 12px;
+    padding: 5px 10px;
+}
+
+#sidebar .title {
+    color: #333;
+    font-family: "Playfair Display", serif;
+    font-weight: bold;
+    line-height: normal;
+    text-align: none;
+    font-size: none;
+    margin: none;
+}
+#sidebar .title {
+    font-size: 18px;
+    margin: 10px 0 0 0;
+}
