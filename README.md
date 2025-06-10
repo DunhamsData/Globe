@@ -187,6 +187,20 @@ We implemented a color gradient for paths in order to make altitude and the pass
 
 Altogether, your web page code should look like the sketch in Appendix A. These are the basics for creating a 3D globe from itinerary data. Read [GlobeGL documentation](https://github.com/vasturiano/globe.gl#globegl) for more examples and detailed information.
 
+# Usage guidelines
+
+## Reuse
+Our code is shared as part of an exploratory, research-driven digital humanities project. While certain components may be technically reusable, this repository is intended as a starting point for thinking and experimenting with methods. It is not intended as a general-purpose visualization library or “drop-in” toolkit for replication.
+
+## License
+This code is shared under an MIT License, which permits reuse and adaptation for any purpose, including commercial use, provided that attribution is included. We ask that users engage respectfully with the intellectual framing behind the project, especially in academic contexts. See the full license statement [here](LICENSE).
+
+## Recommended attribution for code
+Based on code and data developed by Antonio Jiménez-Mavillard for the AHRC-funded project [Dunham’s Data: Katherine Dunham and Digital Methods for Dance Historical Inquiry](http://www.dunhamsdata.org/) (AHRC AH/R012989/1, 2018-2022), PIs Harmony Bench and Kate Elswit.
+
+## Recommended citation for the Dunham’s Data Project as a whole
+Harmony Bench and Kate Elswit (PIs). Dunham’s Data: Katherine Dunham and Digital Methods for Dance History (AHRC AH/R012989/1, 2018-2022). [https://dunhamsdata.org](https://dunhamsdata.org)
+
 
 # APPENDICES
 ## APPENDIX A. Simplified web code
